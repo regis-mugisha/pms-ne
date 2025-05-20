@@ -1,11 +1,20 @@
 const { PrismaClient } = require("../../generated/prisma");
 const prisma = new PrismaClient();
+const { z } = require("zod");
 
-// ✅ Register car entry
+// Input validation schemas
+const entrySchema = z.object({
+  plateNumber: z.string().min(1, "Plate number is required"),
+  parkingCode: z.string().min(1, "Parking code is required"),
+});
+
+const exitSchema = z.object({
+  plateNumber: z.string().min(1, "Plate number is required"),
+});
+
 exports.registerEntry = async (req, res) => {
-  const { plateNumber, parkingCode } = req.body;
-
   try {
+    const { plateNumber, parkingCode } = entrySchema.parse(req.body);
     const parking = await prisma.parking.findUnique({
       where: { code: parkingCode },
     });
@@ -17,26 +26,29 @@ exports.registerEntry = async (req, res) => {
         plateNumber,
         parkingCode,
         entryTime: new Date(),
+        logs: { create: { action: "CAR_ENTRY", parkingId: parking.id } },
       },
     });
 
-    // update available spaces
     await prisma.parking.update({
       where: { code: parkingCode },
       data: { availableSpaces: { decrement: 1 } },
     });
 
-    res.status(201).json({ message: "Car entry registered", car });
+    res.status(201).json({
+      message: "Car entry registered",
+      ticket: { id: car.id, ticketCode: car.ticketCode, plateNumber },
+    });
   } catch (err) {
+    if (err instanceof z.ZodError)
+      return res.status(400).json({ error: err.errors });
     res.status(500).json({ error: "Failed to register car entry" });
   }
 };
 
-// ✅ Car exit + calculate bill
 exports.registerExit = async (req, res) => {
-  const { plateNumber } = req.body;
-
   try {
+    const { plateNumber } = exitSchema.parse(req.body);
     const car = await prisma.car.findFirst({
       where: { plateNumber, exitTime: null },
       include: { parking: true },
@@ -54,10 +66,10 @@ exports.registerExit = async (req, res) => {
       data: {
         exitTime,
         charged: amount,
+        logs: { create: { action: "CAR_EXIT", parkingId: car.parking.id } },
       },
     });
 
-    // increase parking space
     await prisma.parking.update({
       where: { code: car.parkingCode },
       data: { availableSpaces: { increment: 1 } },
@@ -66,12 +78,15 @@ exports.registerExit = async (req, res) => {
     res.json({
       message: "Car exit recorded",
       ticket: {
+        ticketCode: car.ticketCode,
         plateNumber: car.plateNumber,
         parkedHours: hours,
         charged: amount,
       },
     });
   } catch (err) {
+    if (err instanceof z.ZodError)
+      return res.status(400).json({ error: err.errors });
     res.status(500).json({ error: "Failed to register car exit" });
   }
 };

@@ -1,10 +1,14 @@
 const jwt = require("jsonwebtoken");
+const { PrismaClient } = require("../generated/prisma");
+const prisma = new PrismaClient();
 
 function protect(req, res, next) {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer "))
-    return res.status(401).json({ error: "Not authorized" });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    prisma.log.create({ data: { action: "AUTH_FAILED", userId: null } });
+    return res.status(401).json({ error: "No token provided" });
+  }
 
   const token = authHeader.split(" ")[1];
   try {
@@ -12,13 +16,20 @@ function protect(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
+    prisma.log.create({ data: { action: "AUTH_FAILED", userId: null } });
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Token expired" });
+    }
     res.status(401).json({ error: "Invalid token" });
   }
 }
 
 function authorizeRoles(...roles) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!roles.includes(req.user.role)) {
+      await prisma.log.create({
+        data: { action: "ACCESS_DENIED", userId: req.user.id },
+      });
       return res.status(403).json({ error: "Access denied" });
     }
     next();

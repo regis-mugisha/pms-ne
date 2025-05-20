@@ -1,13 +1,11 @@
-/**
- * @swagger
- * tags:
- *   name: Car
- *   description: Car entry and exit endpoints
- */
+const express = require("express");
+const router = express.Router();
+const carController = require("../../controllers/car/index");
+const { protect, authorizeRoles } = require("../../middlewares/authMiddleware");
 
 /**
  * @swagger
- * /api/car/entry:
+ * /car/entry:
  *   post:
  *     summary: Register car entry
  *     tags: [Car]
@@ -19,51 +17,47 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - plateNumber
- *               - parkingCode
  *             properties:
  *               plateNumber:
  *                 type: string
- *                 description: Vehicle's license plate number
- *                 example: "ABC123"
  *               parkingCode:
  *                 type: string
- *                 description: Code of the parking lot where the car is entering
- *                 example: "PARK001"
  *     responses:
  *       201:
- *         description: Car entry registered successfully
+ *         description: Car entry registered
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 message:
  *                   type: string
- *                 plateNumber:
- *                   type: string
- *                 parkingCode:
- *                   type: string
- *                 entryTime:
- *                   type: string
- *                   format: date-time
- *                 status:
- *                   type: string
- *                   enum: [ACTIVE]
+ *                 ticket:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     ticketCode:
+ *                       type: string
+ *                     plateNumber:
+ *                       type: string
  *       400:
- *         description: Invalid input or parking lot is full
- *       401:
- *         description: Unauthorized - Driver access required
- *       404:
- *         description: Parking lot not found
+ *         description: Invalid input or parking not available
+ *       500:
+ *         description: Server error
  */
+router.post(
+  "/entry",
+  protect,
+  authorizeRoles("ATTENDANT"),
+  carController.registerEntry
+);
 
 /**
  * @swagger
- * /api/car/exit:
+ * /car/exit:
  *   post:
- *     summary: Register car exit
+ *     summary: Register car exit and generate bill
  *     tags: [Car]
  *     security:
  *       - bearerAuth: []
@@ -73,58 +67,40 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - plateNumber
  *             properties:
  *               plateNumber:
  *                 type: string
- *                 description: Vehicle's license plate number
- *                 example: "ABC123"
  *     responses:
  *       200:
- *         description: Car exit registered successfully
+ *         description: Car exit recorded
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 message:
  *                   type: string
- *                 plateNumber:
- *                   type: string
- *                 parkingCode:
- *                   type: string
- *                 entryTime:
- *                   type: string
- *                   format: date-time
- *                 exitTime:
- *                   type: string
- *                   format: date-time
- *                 duration:
- *                   type: integer
- *                   description: Duration in minutes
- *                 fee:
- *                   type: number
- *                   description: Parking fee in currency units
- *                 status:
- *                   type: string
- *                   enum: [COMPLETED]
- *       400:
- *         description: Invalid input or car not found in parking
- *       401:
- *         description: Unauthorized - Driver access required
+ *                 ticket:
+ *                   type: object
+ *                   properties:
+ *                     ticketCode:
+ *                       type: string
+ *                     plateNumber:
+ *                       type: string
+ *                     parkedHours:
+ *                       type: number
+ *                     charged:
+ *                       type: number
  *       404:
- *         description: Active parking record not found
+ *         description: Car not found or already exited
+ *       500:
+ *         description: Server error
  */
-
-const express = require("express");
-const { registerEntry, registerExit } = require("../../controllers/car/index");
-const { protect, authorizeRoles } = require("../../middlewares/authMiddleware");
-
-const router = express.Router();
-
-// Driver enters and exits parking
-router.post("/entry", protect, authorizeRoles("DRIVER"), registerEntry);
-router.post("/exit", protect, authorizeRoles("DRIVER"), registerExit);
+router.post(
+  "/exit",
+  protect,
+  authorizeRoles("ATTENDANT"),
+  carController.registerExit
+);
 
 module.exports = router;

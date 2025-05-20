@@ -21,44 +21,30 @@
  *               - firstName
  *               - lastName
  *               - email
- *               - username
  *               - password
  *               - role
  *             properties:
  *               firstName:
  *                 type: string
- *                 description: User's first name
- *                 minLength: 2
- *                 maxLength: 50
+ *                 minLength: 1
  *                 example: "John"
  *               lastName:
  *                 type: string
- *                 description: User's last name
- *                 minLength: 2
- *                 maxLength: 50
+ *                 minLength: 1
  *                 example: "Doe"
  *               email:
  *                 type: string
- *                 description: User's email address
  *                 format: email
  *                 example: "john.doe@example.com"
- *               username:
- *                 type: string
- *                 description: User's unique username
- *                 minLength: 3
- *                 maxLength: 50
- *                 example: "johndoe"
  *               password:
  *                 type: string
- *                 description: User's password
  *                 minLength: 6
  *                 format: password
  *                 example: "password123"
  *               role:
  *                 type: string
- *                 description: User's role in the system
- *                 enum: [ADMIN, DRIVER]
- *                 example: "DRIVER"
+ *                 enum: [ADMIN, ATTENDANT]
+ *                 example: "ATTENDANT"
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -67,23 +53,23 @@
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 token:
  *                   type: string
- *                 firstName:
- *                   type: string
- *                 lastName:
- *                   type: string
- *                 email:
- *                   type: string
- *                 username:
- *                   type: string
- *                 role:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
  *       400:
- *         description: Invalid input data or username/email already exists
+ *         description: Invalid input or email already exists
  */
 
 /**
@@ -99,16 +85,15 @@
  *           schema:
  *             type: object
  *             required:
- *               - username
+ *               - email
  *               - password
  *             properties:
- *               username:
+ *               email:
  *                 type: string
- *                 description: User's username
- *                 example: "johndoe"
+ *                 format: email
+ *                 example: "john.doe@example.com"
  *               password:
  *                 type: string
- *                 description: User's password
  *                 format: password
  *                 example: "password123"
  *     responses:
@@ -121,17 +106,20 @@
  *               properties:
  *                 token:
  *                   type: string
- *                   description: JWT access token
  *                 user:
  *                   type: object
  *                   properties:
  *                     id:
+ *                       type: integer
+ *                     firstName:
  *                       type: string
- *                     username:
+ *                     lastName:
+ *                       type: string
+ *                     email:
  *                       type: string
  *                     role:
  *                       type: string
- *       401:
+ *       400:
  *         description: Invalid credentials
  */
 

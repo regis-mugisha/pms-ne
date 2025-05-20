@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -15,35 +8,57 @@ datasource db {
 }
 
 model User {
-  id        Int    @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   firstName String
   lastName  String
-  email     String @unique
+  email     String   @unique
   password  String
   role      Role
-}
-
-enum Role {
-  ADMIN
-  DRIVER
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      Log[]
 }
 
 model Parking {
-  id              Int    @id @default(autoincrement())
-  code            String @unique
+  id              Int      @id @default(autoincrement())
+  code            String   @unique
   name            String
-  availableSpaces Int
+  availableSpaces Int      @default(0)
   location        String
-  feePerHour      Float
+  feePerHour      Float    @default(0.0)
   cars            Car[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  logs            Log[]
 }
 
 model Car {
   id          Int       @id @default(autoincrement())
+  ticketCode  String    @unique @default(uuid())
   plateNumber String
-  entryTime   DateTime
-  exitTime    DateTime?
-  charged     Float     @default(0)
-  parking     Parking   @relation(fields: [parkingCode], references: [code])
   parkingCode String
+  entryTime   DateTime  @default(now())
+  exitTime    DateTime?
+  charged     Float     @default(0.0)
+  parking     Parking   @relation(fields: [parkingCode], references: [code])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  logs        Log[]
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  action    String
+  userId    Int?
+  parkingId Int?
+  carId     Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  parking   Parking? @relation(fields: [parkingId], references: [id])
+  car       Car?     @relation(fields: [carId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  ATTENDANT
 }

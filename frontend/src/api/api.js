@@ -1,14 +1,27 @@
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 
 const API = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: "http://localhost:5000/api",
 });
 
+// Interceptor for global error handling
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/";
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const setAuthToken = (token) => {
-  API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  const decoded = jwtDecode(token);
-  localStorage.setItem("role", decoded.role); // store role
+  if (token) {
+    API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else {
+    delete API.defaults.headers.common["Authorization"];
+  }
 };
 
 export default API;
