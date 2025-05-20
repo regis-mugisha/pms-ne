@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../api/api";
 
 export default function RegisterPage() {
@@ -66,6 +66,12 @@ export default function RegisterPage() {
         <option value="ADMIN">Admin</option>
       </select>
       <button onClick={register}>Register</button>
+      <p className="mt-2">
+        Already have an account?{" "}
+        <Link to="/login" className="text-blue-500">
+          Login
+        </Link>
+      </p>
     </div>
   );
 }

@@ -1,12 +1,12 @@
 const jwt = require("jsonwebtoken");
-const { PrismaClient } = require("../generated/prisma");
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function generateToken(user) {
-  console.log("Generating token for user:", user.id);
+  console.log("Generating token for user:", user.id, "with role:", user.role);
   try {
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role.toString() }, // Convert enum to string
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
