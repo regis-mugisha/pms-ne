@@ -11,26 +11,33 @@ export default function RegisterPage() {
     role: "ATTENDANT",
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const register = async () => {
     try {
+      setLoading(true);
       // Basic client-side validation
       if (!form.email.includes("@")) throw new Error("Invalid email");
       if (form.password.length < 6)
         throw new Error("Password must be at least 6 characters");
 
       await API.post("/auth/register", form);
-      alert("Registered! Please login.");
+      alert("Registered successfully! Please login.");
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="register-container">
-      <h2>Register</h2>
+      <h2>Register as Parking Attendant</h2>
+      <p className="text-gray-600 mb-4">
+        Create your account to manage parking operations
+      </p>
       {error && <p className="error">{error}</p>}
       <input
         placeholder="First Name"
@@ -58,17 +65,16 @@ export default function RegisterPage() {
         onChange={(e) => setForm({ ...form, password: e.target.value })}
         required
       />
-      <select
-        value={form.role}
-        onChange={(e) => setForm({ ...form, role: e.target.value })}
+      <button
+        onClick={register}
+        disabled={loading}
+        className={loading ? "opacity-50 cursor-not-allowed" : ""}
       >
-        <option value="ATTENDANT">Parking Attendant</option>
-        <option value="ADMIN">Admin</option>
-      </select>
-      <button onClick={register}>Register</button>
+        {loading ? "Registering..." : "Register"}
+      </button>
       <p className="mt-2">
         Already have an account?{" "}
-        <Link to="/login" className="text-blue-500">
+        <Link to="/" className="text-blue-500">
           Login
         </Link>
       </p>

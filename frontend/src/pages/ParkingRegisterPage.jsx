@@ -17,10 +17,21 @@ export default function ParkingRegisterPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return navigate("/");
-    const { role } = jwtDecode(token);
-    if (role !== "ADMIN") {
-      alert("Access denied");
-      navigate("/dashboard");
+
+    try {
+      const { role } = jwtDecode(token);
+      if (role !== "ADMIN") {
+        alert("Access denied");
+        // Navigate to the appropriate dashboard based on role
+        if (role === "ATTENDANT") {
+          navigate("/attendant");
+        } else {
+          navigate("/");
+        }
+      }
+    } catch {
+      alert("Invalid token");
+      navigate("/");
     }
   }, [navigate]);
 
@@ -40,72 +51,119 @@ export default function ParkingRegisterPage() {
         feePerHour: fee,
       });
       alert("Parking registered successfully!");
-      setParking({
-        code: "",
-        name: "",
-        availableSpaces: "",
-        location: "",
-        feePerHour: "",
-      });
+      navigate("/parking");
     } catch (err) {
       setError(err.response?.data?.error || err.message);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">
-          Register New Parking
-        </h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        <input
-          className="w-full p-2 mb-4 border rounded"
-          placeholder="Code"
-          value={parking.code}
-          onChange={(e) => setParking({ ...parking, code: e.target.value })}
-          required
-        />
-        <input
-          className="w-full p-2 mb-4 border rounded"
-          placeholder="Name"
-          value={parking.name}
-          onChange={(e) => setParking({ ...parking, name: e.target.value })}
-          required
-        />
-        <input
-          type="number"
-          className="w-full p-2 mb-4 border rounded"
-          placeholder="Available Spaces"
-          value={parking.availableSpaces}
-          onChange={(e) =>
-            setParking({ ...parking, availableSpaces: e.target.value })
-          }
-          required
-        />
-        <input
-          className="w-full p-2 mb-4 border rounded"
-          placeholder="Location"
-          value={parking.location}
-          onChange={(e) => setParking({ ...parking, location: e.target.value })}
-          required
-        />
-        <input
-          type="number"
-          className="w-full p-2 mb-4 border rounded"
-          placeholder="Fee per Hour"
-          value={parking.feePerHour}
-          onChange={(e) =>
-            setParking({ ...parking, feePerHour: e.target.value })
-          }
-          required
-        />
-        <button
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-          onClick={handleRegister}
-        >
-          Create Parking
-        </button>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Register New Parking</h2>
+          <button
+            onClick={() => navigate("/admin")}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="code">
+                Code
+              </label>
+              <input
+                id="code"
+                type="text"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={parking.code}
+                onChange={(e) =>
+                  setParking({ ...parking, code: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="name">
+                Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={parking.name}
+                onChange={(e) =>
+                  setParking({ ...parking, name: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="location">
+                Location
+              </label>
+              <input
+                id="location"
+                type="text"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={parking.location}
+                onChange={(e) =>
+                  setParking({ ...parking, location: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="spaces">
+                Available Spaces
+              </label>
+              <input
+                id="spaces"
+                type="number"
+                min="0"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={parking.availableSpaces}
+                onChange={(e) =>
+                  setParking({ ...parking, availableSpaces: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="fee">
+                Fee per Hour ($)
+              </label>
+              <input
+                id="fee"
+                type="number"
+                min="0"
+                step="0.01"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={parking.feePerHour}
+                onChange={(e) =>
+                  setParking({ ...parking, feePerHour: e.target.value })
+                }
+                required
+              />
+            </div>
+            <button
+              onClick={handleRegister}
+              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            >
+              Register Parking
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

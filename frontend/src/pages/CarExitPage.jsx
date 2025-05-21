@@ -4,72 +4,113 @@ import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
 export default function CarExitPage() {
-  const [plateNumber, setPlateNumber] = useState("");
-  const [bill, setBill] = useState(null);
+  const [form, setForm] = useState({ plateNumber: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [availableParkings, setAvailableParkings] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return navigate("/");
-    const { role } = jwtDecode(token);
-    if (role !== "ATTENDANT") {
-      alert("Access denied");
-      navigate("/dashboard");
+
+    try {
+      const { role } = jwtDecode(token);
+      if (!["ADMIN", "ATTENDANT"].includes(role)) {
+        alert("Access denied");
+        if (role === "ADMIN") {
+          navigate("/admin");
+        } else if (role === "ATTENDANT") {
+          navigate("/attendant");
+        } else {
+          navigate("/");
+        }
+      }
+    } catch {
+      alert("Invalid token");
+      navigate("/");
     }
+
+    fetchAvailableParkings();
   }, [navigate]);
+
+  const fetchAvailableParkings = async () => {
+    try {
+      const res = await API.get("/parking/available");
+      setAvailableParkings(res.data.parkings);
+    } catch (err) {
+      setError("Failed to load available parkings");
+    }
+  };
 
   const handleExit = async () => {
     try {
-      if (!plateNumber) throw new Error("Plate number is required");
-      const res = await API.post("/car/exit", { plateNumber }); // Changed to POST, match backend
-      setBill(res.data.ticket);
-      setPlateNumber("");
+      setLoading(true);
+      const res = await API.post("/car/exit", form);
+      alert(`Car exit registered. Charged: $${res.data.charged}`);
+      setForm({ plateNumber: "" });
+      await fetchAvailableParkings();
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      setError(err.response?.data?.error || "Failed to register car exit");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">
-          Register Car Exit
-        </h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        <input
-          className="w-full p-2 mb-4 border rounded"
-          placeholder="Plate Number"
-          value={plateNumber}
-          onChange={(e) => setPlateNumber(e.target.value)}
-          required
-        />
-        <button
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-          onClick={handleExit}
-        >
-          Exit Car
-        </button>
-        {bill && (
-          <div className="mt-4 p-4 border rounded bg-gray-50">
-            <p>
-              <strong>Ticket Code:</strong> {bill.ticketCode}
-            </p>
-            <p>
-              <strong>Plate Number:</strong> {bill.plateNumber}
-            </p>
-            <p>
-              <strong>Parked Hours:</strong> {bill.parkedHours}
-            </p>
-            <p>
-              <strong>Charged Amount:</strong> ${bill.charged}
-            </p>
-            <p>
-              <strong>Exited At:</strong>{" "}
-              {new Date(bill.exitTime).toLocaleString()}
-            </p>
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
+      <div className="max-w-md mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Car Exit</h2>
+          <button
+            onClick={() => {
+              const { role } = jwtDecode(localStorage.getItem("token"));
+              navigate(role === "ADMIN" ? "/admin" : "/attendant");
+            }}
+            className="w-full sm:w-auto bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
         )}
+
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+          <div className="space-y-4">
+            <div>
+              <label
+                className="block text-gray-700 mb-2 font-medium"
+                htmlFor="plateNumber"
+              >
+                Plate Number
+              </label>
+              <input
+                id="plateNumber"
+                type="text"
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                value={form.plateNumber}
+                onChange={(e) =>
+                  setForm({ ...form, plateNumber: e.target.value })
+                }
+                placeholder="Enter plate number"
+                required
+              />
+            </div>
+            <button
+              onClick={handleExit}
+              disabled={loading}
+              className={`w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition-colors ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              {loading ? "Processing..." : "Register Exit"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

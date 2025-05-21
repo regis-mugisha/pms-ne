@@ -8,15 +8,23 @@ export default function Dashboard() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [role, setRole] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return navigate("/");
-    const { role } = jwtDecode(token);
-    if (!["ADMIN", "ATTENDANT"].includes(role)) {
-      alert("Access denied");
-      navigate("/");
+
+    try {
+      const { role } = jwtDecode(token);
+      setRole(role);
+      if (!["ADMIN", "ATTENDANT"].includes(role)) {
+        alert("Access denied");
+        return navigate("/");
+      }
+    } catch {
+      alert("Invalid token");
+      return navigate("/");
     }
   }, [navigate]);
 
@@ -39,7 +47,7 @@ export default function Dashboard() {
         <Link to="/parking" className="text-blue-500 hover:underline">
           View Parking
         </Link>
-        {localStorage.getItem("role") === "ADMIN" && (
+        {role === "ADMIN" && (
           <>
             <Link
               to="/register-parking"
