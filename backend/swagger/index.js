@@ -1,14 +1,20 @@
-const swaggerJsDoc = require("swagger-jsdoc");
+const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 
 const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Parking Management API",
+      title: "Parking Management System API",
       version: "1.0.0",
-      description: "API for managing users, parking, cars, and billing",
+      description: "API documentation for Parking Management System",
     },
+    servers: [
+      {
+        url: "http://localhost:5000",
+        description: "Development server",
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -18,15 +24,27 @@ const options = {
         },
       },
     },
-    security: [{ bearerAuth: [] }],
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
-  apis: ["./routes/**/*.js"],
+  apis: ["./routes/*.js", "./routes/*/*.js"],
 };
 
-const swaggerSpec = swaggerJsDoc(options);
+const specs = swaggerJsdoc(options);
 
-function setupSwagger(app) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-}
+const setupSwagger = (app) => {
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(specs, {
+      explorer: true,
+      customCss: ".swagger-ui .topbar { display: none }",
+      customSiteTitle: "Parking API Documentation",
+    })
+  );
+};
 
 module.exports = setupSwagger;

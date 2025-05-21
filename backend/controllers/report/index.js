@@ -1,4 +1,4 @@
-const { PrismaClient } = require("../../generated/prisma");
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { z } = require("zod");
 
@@ -64,8 +64,93 @@ exports.getReports = async (req, res) => {
       totalPages: Math.ceil(totalEntries / pageSize),
     });
   } catch (err) {
+    console.log(err);
+
     if (err instanceof z.ZodError)
       return res.status(400).json({ error: err.errors });
     res.status(500).json({ error: "Failed to fetch reports" });
+  }
+};
+
+exports.getRevenueReport = async (req, res) => {
+  try {
+    const { start, end, page } = reportSchema.parse(req.query);
+    const pageSize = 10;
+
+    const revenue = await prisma.car.groupBy({
+      by: ["parkingCode"],
+      where: {
+        exitTime: {
+          gte: start ? new Date(start) : undefined,
+          lte: end ? new Date(end) : undefined,
+          not: null,
+        },
+      },
+      _sum: {
+        charged: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    const totalRevenue = revenue.reduce(
+      (sum, item) => sum + (item._sum.charged || 0),
+      0
+    );
+
+    res.json({
+      revenue: revenue.map((item) => ({
+        parkingCode: item.parkingCode,
+        totalRevenue: item._sum.charged || 0,
+        totalCars: item._count.id,
+      })),
+      totalRevenue,
+      totalPages: Math.ceil(revenue.length / pageSize),
+    });
+  } catch (err) {
+    if (err instanceof z.ZodError)
+      return res.status(400).json({ error: err.errors });
+    res.status(500).json({ error: "Failed to fetch revenue report" });
+  }
+};
+
+exports.getOccupancyReport = async (req, res) => {
+  try {
+    const { start, end, page } = reportSchema.parse(req.query);
+    const pageSize = 10;
+
+    const parkings = await prisma.parking.findMany({
+      include: {
+        _count: {
+          select: {
+            cars: {
+              where: {
+                exitTime: null,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const occupancy = parkings.map((parking) => ({
+      parkingCode: parking.code,
+      totalSpaces: parking.availableSpaces + parking._count.cars,
+      occupiedSpaces: parking._count.cars,
+      occupancyRate:
+        (parking._count.cars /
+          (parking.availableSpaces + parking._count.cars)) *
+        100,
+    }));
+
+    res.json({
+      occupancy,
+      totalPages: Math.ceil(occupancy.length / pageSize),
+    });
+  } catch (err) {
+    if (err instanceof z.ZodError)
+      return res.status(400).json({ error: err.errors });
+    res.status(500).json({ error: "Failed to fetch occupancy report" });
   }
 };
